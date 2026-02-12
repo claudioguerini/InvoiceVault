@@ -23,8 +23,10 @@ Tokenized invoice factoring demo with:
 ## Run the Frontend
 
 ```bash
-npm install
-npm run dev
+- npm install
+- Set-Location 'C:\Temp\TokenFactorIOTA'
+  if (Test-Path .next) { Remove-Item -Recurse -Force .next }
+  npm run dev -- --webpack
 ```
 
 ## Run On IOTA Devnet/Testnet
