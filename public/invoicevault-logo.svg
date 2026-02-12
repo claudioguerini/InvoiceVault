@@ -1,0 +1,83 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1500 420"
+  role="img"
+  aria-labelledby="logoTitle logoDesc"
+>
+  <title id="logoTitle">InvoiceVault</title>
+  <desc id="logoDesc">InvoiceVault logo with the tagline Tokenize Your Invoices</desc>
+  <defs>
+    <linearGradient id="silverFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f7fcff" />
+      <stop offset="42%" stop-color="#dce7f3" />
+      <stop offset="100%" stop-color="#8ea1bb" />
+    </linearGradient>
+    <linearGradient id="cyanFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#5befff" />
+      <stop offset="55%" stop-color="#1ecaf2" />
+      <stop offset="100%" stop-color="#1194df" />
+    </linearGradient>
+    <linearGradient id="lineFill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8ee9ff" stop-opacity="0" />
+      <stop offset="50%" stop-color="#8ee9ff" stop-opacity="1" />
+      <stop offset="100%" stop-color="#8ee9ff" stop-opacity="0" />
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#softGlow)">
+    <text
+      x="34"
+      y="210"
+      font-family="'Segoe UI', Tahoma, Arial, sans-serif"
+      font-size="184"
+      font-weight="900"
+      letter-spacing="1.5"
+      fill="url(#silverFill)"
+      stroke="#88cbff"
+      stroke-width="4"
+      paint-order="stroke fill"
+    >
+      INVOICE
+    </text>
+    <text
+      x="758"
+      y="210"
+      font-family="'Segoe UI', Tahoma, Arial, sans-serif"
+      font-size="184"
+      font-weight="900"
+      letter-spacing="1.5"
+      fill="url(#cyanFill)"
+      stroke="#71ebff"
+      stroke-width="4"
+      paint-order="stroke fill"
+    >
+      VAULT
+    </text>
+  </g>
+
+  <g>
+    <line x1="34" y1="286" x2="244" y2="286" stroke="url(#lineFill)" stroke-width="5" />
+    <line x1="1126" y1="286" x2="1460" y2="286" stroke="url(#lineFill)" stroke-width="5" />
+    <text
+      x="274"
+      y="307"
+      font-family="'Segoe UI', Tahoma, Arial, sans-serif"
+      font-size="56"
+      font-weight="700"
+      letter-spacing="8"
+      fill="url(#silverFill)"
+      stroke="#66d7ff"
+      stroke-width="1.8"
+      paint-order="stroke fill"
+    >
+      TOKENIZE YOUR INVOICES
+    </text>
+  </g>
+</svg>
