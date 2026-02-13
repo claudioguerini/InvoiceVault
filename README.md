@@ -106,31 +106,6 @@ If package IDs are not set, the UI falls back to local demo persistence so the f
   - `mark_defaulted` (holder-only, simulation mode) marks invoice as `DEFAULTED` after due date
 - optional compliance helper: `set_compliance_lists` (issuer-managed allowlist/denylist on invoice)
 
-## Devnet Publish Workaround (Windows)
-
-When publish/build fails because git is missing/unstable or Move lock/rename operations fail:
-
-- use portable MinGit from repo and prepend it to `PATH`
-- force `MOVE_HOME` to a simple writable path (`C:\\m`)
-- use `tools\\v1.16.2-rc\\iota.exe`
-- always pass `--skip-fetch-latest-git-deps`
-
-PowerShell template:
-
-```powershell
-$env:MOVE_HOME='C:\m'
-$env:Path='c:\Temp1\TokenFactorIOTA\tools\v1.16.2-rc;c:\Temp1\TokenFactorIOTA\tools\mingit\git\cmd;' + $env:Path
-
-& 'c:\Temp1\TokenFactorIOTA\tools\v1.16.2-rc\iota.exe' move build --path 'c:\Temp1\TokenFactorIOTA\move\invoice_vault' --skip-fetch-latest-git-deps
-
-& 'c:\Temp1\TokenFactorIOTA\tools\v1.16.2-rc\iota.exe' client publish 'c:\Temp1\TokenFactorIOTA\move\invoice_vault' --gas-budget 200000000 --skip-fetch-latest-git-deps --json
-```
-
-Current devnet package id:
-- `0x7ca30248fd6323f559f8ae92db724205356e0736f1290be683560e148a7d22d6`
-
-Reusable note for future chats:
-- `For this project, use the on-chain publish workaround: portable MinGit in PATH + MOVE_HOME=C:\m + iota v1.16.2-rc + --skip-fetch-latest-git-deps.`
 
 ## Hackathon Flow
 
