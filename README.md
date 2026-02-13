@@ -44,6 +44,9 @@ If Turbopack shows a runtime overlay, run dev with Webpack:
 ```bash
 npm run dev -- --webpack
 ```
+Set-Location 'C:\Temp\TokenFactorIOTA'
+if (Test-Path .next) { Remove-Item -Recurse -Force .next }
+npm run dev -- --webpack
 
 ## On-Chain Configuration
 
