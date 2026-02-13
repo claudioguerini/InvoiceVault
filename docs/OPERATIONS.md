@@ -1,105 +1,129 @@
 # InvoiceVault - Operations Runbook
 
-## 1. Prerequisites
-- Node.js + npm.
-- IOTA browser wallet extension.
-- IOTA CLI available (`tools\iota.exe` or `tools\v1.16.2-rc\iota.exe`).
+This runbook focuses on running the MVP locally and publishing the Move package to a target IOTA network.
 
-## 2. Run frontend locally
+## 1. Prerequisites
+
+- Node.js 20+ and npm
+- An IOTA wallet extension (for on-chain mode)
+- IOTA CLI with Move support (`iota`)
+- Git (recommended; some Move dependency flows assume it)
+
+## 2. Run Frontend Locally
+
+From the project root:
+
 ```powershell
 npm install
 npm run dev
 ```
 
 Local production build:
+
 ```powershell
 npm run build
 npm run start
 ```
 
-## 3. Environment configuration
+If you see a Turbopack runtime overlay, run dev with Webpack:
+
+```powershell
+npm run dev -- --webpack
+```
+
+## 3. Environment Configuration
+
 Create or update `.env.local`:
+
 ```env
 NEXT_PUBLIC_IOTA_PACKAGE_ID_DEVNET=0x...
 NEXT_PUBLIC_IOTA_PACKAGE_ID_TESTNET=0x...
 NEXT_PUBLIC_IOTA_PACKAGE_ID_MAINNET=0x...
+
+# Optional UI buyer-eligibility guardrails (demo/compliance hint)
 NEXT_PUBLIC_ALLOWLIST=
 NEXT_PUBLIC_DENYLIST=
 ```
 
-If package id is not set for the selected network:
-- UI shows red banner;
-- actions use local demo fallback.
+If the package ID is not set for the selected network:
+- the UI shows a red banner
+- actions use local demo fallback
 
-## 4. Publish Move on devnet (recommended Windows workaround)
+## 4. Build and Publish Move Package
 
-Context:
-- on some machines, git and lock-file rename operations are unstable during build/publish.
+From `move/invoice_vault`:
 
-Official project workaround:
-- portable MinGit in PATH;
-- `MOVE_HOME=C:\m`;
-- `tools\v1.16.2-rc\iota.exe` CLI;
-- `--skip-fetch-latest-git-deps` flag.
-
-PowerShell template:
 ```powershell
-$env:MOVE_HOME='C:\m'
-$env:Path='c:\Temp1\TokenFactorIOTA\tools\v1.16.2-rc;c:\Temp1\TokenFactorIOTA\tools\mingit\git\cmd;' + $env:Path
-
-& 'c:\Temp1\TokenFactorIOTA\tools\v1.16.2-rc\iota.exe' move build --path 'c:\Temp1\TokenFactorIOTA\move\invoice_vault' --skip-fetch-latest-git-deps
-
-& 'c:\Temp1\TokenFactorIOTA\tools\v1.16.2-rc\iota.exe' client publish 'c:\Temp1\TokenFactorIOTA\move\invoice_vault' --gas-budget 200000000 --skip-fetch-latest-git-deps --json
+iota move build
+iota client publish --gas-budget 200000000
 ```
 
-Current devnet package id:
-- `0x7ca30248fd6323f559f8ae92db724205356e0736f1290be683560e148a7d22d6`
+Copy the published `packageId` from the CLI output and set the matching `NEXT_PUBLIC_IOTA_PACKAGE_ID_*` variable in `.env.local`.
 
-## 5. Post-publish checklist
-1. Update `.env.local` with the new package id.
-2. Verify `move/invoice_vault/Move.lock`:
-   - `original-published-id` and `latest-published-id` are aligned.
-3. Restart frontend.
-4. In UI:
-   - select the correct network;
-   - verify red/amber banners are not shown;
-   - test create -> list -> fund -> repay.
+Restart the frontend and verify:
+- the "package ID missing" banner is gone
+- wallet network matches the selected app network
+- Create -> list -> fund -> repay produce real transaction digests
 
-## 6. Demo default mode
-For simplified demo:
-1. `System Options -> Lifecycle Mode -> Default Simulation`.
-2. Create invoice (due date will be forced to funding +30s).
-3. Fund from buyer.
-4. Wait >30s.
+### Windows Notes (Common Issues)
+
+If Move build/publish fails due to file locks or dependency fetching:
+- Set a short writable Move home directory:
+
+```powershell
+$env:MOVE_HOME = 'C:\\m'
+```
+
+- If your CLI supports it, try:
+
+```powershell
+iota move build --skip-fetch-latest-git-deps
+iota client publish --gas-budget 200000000 --skip-fetch-latest-git-deps
+```
+
+## 5. Demo Mode (Default Simulation)
+
+For a fast live demo:
+1. Open "System Options" and switch Lifecycle Mode to "Default Simulation".
+2. Create an invoice claim and list it at a discount.
+3. Fund from a second wallet.
+4. Wait ~30 seconds.
 5. Buyer executes `mark_defaulted`.
-6. Issuer executes `repay_invoice` (recovery with default fee).
+6. Issuer executes `repay_invoice` (recovery payment includes the default fee).
 
-## 7. UI data reset (local only)
-From `System Options -> Data / Reset`:
-- `Hide current portfolio items`
-- `Hide marketplace items + clear cache`
+## 6. UI Data Reset (Local Only)
 
-Note:
-- browser-local action only;
-- does not remove on-chain objects.
+From "System Options -> Data / Reset":
+- Hide current portfolio items
+- Hide marketplace items + clear cache
 
-## 8. Quick troubleshooting
+This only affects the browser; it does not delete on-chain objects.
 
-### 8.1 Wallet connected but cannot sign
-- verify wallet network equals selected app network;
-- check header mismatch banner.
+## 7. Troubleshooting
 
-### 8.2 Create submits tx but object id is not shown immediately
-- transaction may be confirmed while indexer is still catching up;
-- use digest shown in UI and refresh after a few seconds.
+### 7.1 Tailwind "Can't resolve 'tailwindcss'"
 
-### 8.3 Frontend does not reflect latest changes
-- stop active `node` processes;
-- clear `.next` if needed;
-- restart with `npm run dev` or `npm run start`.
+This usually means the dev server started from the wrong working directory.
 
-### 8.4 Move build/publish errors on lock/rename/git
-- apply workaround from section 4 (MinGit + MOVE_HOME + v1.16.2-rc + skip-fetch).
+Confirm you are in the project root, then rerun:
 
-## 9. Reusable note for future chats
-For this project, use the on-chain publish workaround: portable MinGit in PATH + MOVE_HOME=C:\m + iota v1.16.2-rc + --skip-fetch-latest-git-deps.
+```powershell
+Set-Location <path-to-repo>
+npm install
+npm run dev
+```
+
+### 7.2 Wallet Connected but Cannot Sign
+
+- Ensure wallet network equals the selected app network (banner indicates mismatch).
+
+### 7.3 Create Succeeds but Invoice ID Is Not Visible Yet
+
+- The transaction can be confirmed while indexing is still catching up.
+- Use the digest shown in the UI and refresh Portfolio after a few seconds.
+
+### 7.4 Frontend Does Not Reflect Changes
+
+- Stop dev server
+- Delete `.next` (if present)
+- Restart `npm run dev` (or `npm run dev -- --webpack`)

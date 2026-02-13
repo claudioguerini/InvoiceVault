@@ -1,37 +1,57 @@
 # InvoiceVault - Technical Specification
 
-## 1. Stack and versions
-- Frontend: Next.js `16.1.6`, React `19.2.3`, TypeScript.
-- Wallet/Chain: `@iota/dapp-kit` `0.8.3`, `@iota/iota-sdk` `1.10.1`.
-- Smart contract: Move package `move/invoice_vault`.
+This document describes the current architecture and implementation of InvoiceVault as shipped in this repository.
 
-## 2. High-level architecture
-- `Move contract`: state logic, coin transfers, fees, ratings.
-- `Next.js frontend`: Create/Marketplace/Portfolio UI plus header/system controls.
-- `Browser local store`: invoice cache, hidden ids, lifecycle mode.
-- `On-chain loader`: reconstructs invoice state from create transactions and object reads.
+## 1. Stack (Current)
 
-## 3. Code structure
-- `move/invoice_vault/sources/invoice_vault.move`: main Move module.
-- `src/lib/iota-tx.ts`: transaction builders for all entry functions.
-- `src/lib/onchain-invoices.ts`: on-chain fetch and parsing.
-- `src/lib/invoice-store.ts`: record model and local persistence.
-- `src/app/create/page.tsx`: invoice creation.
-- `src/app/marketplace/page.tsx`: listing/funding.
-- `src/app/portfolio/page.tsx`: repay/default/rating.
-- `src/components/app-shell.tsx`: header, tabs, status banners.
-- `src/components/system-menu.tsx`: system options (mode, treasury, reset).
-- `src/components/app-providers.tsx`: network/wallet/query providers.
+Frontend:
+- Next.js 16 (App Router)
+- React 19
+- TypeScript 5
+- Tailwind CSS v4 (via `@tailwindcss/postcss`)
 
-## 4. Move contract
+Chain + wallet:
+- `@iota/dapp-kit` (wallet + providers)
+- `@iota/iota-sdk` (client + transactions)
 
-### 4.1 Main constants
-- `PLATFORM_FEE_BPS = 75` (0.75%).
-- `DEFAULT_FEE_BPS = 800` (8%).
-- `DUE_OFFSET_SEC_SIMULATION = 30`.
-- `TREASURY_ADDRESS = 0x777a...b06b`.
+Smart contract:
+- Move package in `move/invoice_vault` (module `invoice_vault::invoice_vault`)
 
-### 4.2 States
+## 2. High-Level Architecture
+
+The MVP is intentionally minimal to remain demo-ready without extra infrastructure:
+- Move contract: state machine + transfers + fee logic + rating.
+- Next.js frontend: Create / Marketplace / Portfolio UI and system controls.
+- Browser local store: demo fallback and UX cache/hide lists.
+- On-chain loader: reconstructs invoices by scanning create transactions and reading shared objects.
+
+Pitch-deck roadmap items (indexer, compliance rails, e-invoicing provenance, analytics) are not part of the MVP unless explicitly wired in code.
+
+## 3. Repository Layout
+
+- `move/invoice_vault/sources/invoice_vault.move`: Move module and entry functions.
+- `src/lib/iota-tx.ts`: transaction builders (1:1 mapping to Move entry functions).
+- `src/lib/onchain-invoices.ts`: on-chain discovery (tx scan + object reads).
+- `src/lib/invoice-store.ts`: local persistence + lifecycle mode + UI guardrails.
+- `src/app/create/page.tsx`: PDF hash + create claim flow.
+- `src/app/marketplace/page.tsx`: listing + funding flow.
+- `src/app/portfolio/page.tsx`: repayment + default simulation + rating flow.
+- `src/components/app-providers.tsx`: network config and wallet/query providers.
+- `src/components/system-menu.tsx`: lifecycle mode, treasury balance, local reset.
+
+## 4. Move Contract Details
+
+### 4.1 Constants
+
+From `move/invoice_vault/sources/invoice_vault.move`:
+- `PLATFORM_FEE_BPS = 75` (0.75%)
+- `DEFAULT_FEE_BPS = 800` (8.0%, demo mode only)
+- `DUE_OFFSET_SEC_SIMULATION = 30`
+- `TREASURY_ADDRESS = 0x777a042ce80d4aaa59d69741775247f5131587e6654c7bc975bda804cd03b06b`
+
+### 4.2 State Encoding
+
+`status` is encoded as:
 - `0 OPEN`
 - `1 FUNDED`
 - `2 REPAID`
@@ -39,126 +59,118 @@
 - `4 DEFAULTED`
 - `5 RECOVERED`
 
-### 4.3 `Invoice` struct
-Relevant fields:
-- actors: `issuer`, `holder`
-- economic: `amount`, `discount_price`
-- time/state: `due_date`, `status`, `funded_at_ms`, `defaulted_at_ms`, `recovered_at_ms`
-- rating: `rating_score`, `rated_by`, `auto_default_rating`
-- mode: `simulation_mode`, `was_defaulted`
-- optional compliance: `allowlist`, `denylist`
+### 4.3 Core Object: `Invoice`
 
-### 4.4 Events
-- `InvoiceDefaulted`
-- `InvoiceRecovered`
+`Invoice` is a shared Move object with:
+- Parties: `issuer`, `holder`
+- Economics: `amount`, `discount_price`
+- Lifecycle: `due_date`, `status`, timestamps (`funded_at_ms`, `defaulted_at_ms`, `recovered_at_ms`)
+- Reputation: `rating_score`, `rated_by`, `auto_default_rating`
+- Demo-mode controls: `simulation_mode`, `was_defaulted`
+- Optional compliance lists: `allowlist`, `denylist`
 
-### 4.5 Entry function ABI
-- `create_invoice(hash, amount, due_date)`
-- `create_invoice_simulation(hash, amount, due_date)`
+### 4.4 Entry Functions
+
+The module exposes:
+- `create_invoice(invoice_hash, amount, due_date)`
+- `create_invoice_simulation(invoice_hash, amount, due_date)`
 - `list_for_funding(invoice, discount_price)`
-- `set_compliance_lists(invoice, allowlist, denylist)`
+- `set_compliance_lists(invoice, allowlist, denylist)` (not wired in UI in MVP)
 - `cancel_invoice(invoice)`
 - `fund_invoice(invoice, payment_coin, clock)`
 - `repay_invoice(invoice, payment_coin, clock)`
-- `mark_defaulted(invoice, clock)`
+- `mark_defaulted(invoice, clock)` (simulation mode only)
 - `rate_invoice(invoice, score)`
 
-### 4.6 Critical on-chain rules
-- no self-funding (`issuer != buyer`).
-- funding requires exact `discount_price` payment.
-- funded repayment requires exact `amount` payment.
-- default recovery requires `amount + default_fee`.
-- `mark_defaulted` only by holder, only in simulation mode, only after due date.
-- auto-rating `1` on default; one override allowed after recovery.
+### 4.5 Rules / Invariants
 
-## 5. Frontend transaction layer
+Guards:
+- Issuer-only: list, cancel, repay.
+- Holder-only: mark default and rate.
+- Self-funding is blocked: `issuer != buyer`.
+- Exact payment invariants:
+  - funding must pay exactly `discount_price`
+  - normal repayment must pay exactly `amount`
+  - recovery repayment (demo) must pay exactly `amount + default_fee`
+- Default simulation:
+  - `mark_defaulted` only when `now_sec > due_date`
+  - auto-rating 1/5 is set on default; after recovery, one override is allowed
 
-`src/lib/iota-tx.ts` maps 1:1 to Move functions:
-- create: `buildCreateInvoiceTx`, `buildCreateInvoiceSimulationTx`
-- listing/funding: `buildListForFundingTx`, `buildFundTx`
-- lifecycle: `buildRepayTx`, `buildMarkDefaultedTx`, `buildCancelTx`
-- rating: `buildRateInvoiceTx`
+Transfers:
+- Funding splits a treasury fee from `discount_price`, then transfers the remainder to issuer.
+- Repayment transfers to holder.
 
-Notes:
-- `fund` and `repay` split payment from gas coin.
-- `Clock` object id is hardcoded to `0x6`.
+Clock:
+- Uses `iota::clock::Clock` timestamp for funded/defaulted/recovered time and due-date forcing in simulation mode.
 
-## 6. Frontend data model
+## 5. Frontend Transaction Layer
 
-`InvoiceRecord` in `src/lib/invoice-store.ts` includes:
-- core: id, hash, amount, due date, issuer, holder, status
-- pricing: discountPrice
-- rating: ratingScore, ratedBy, autoDefaultRating
-- mode/history: lifecycleMode, wasDefaulted, funded/defaulted/recovered timestamps
-- tx metadata: create/fund/repay digest
+`src/lib/iota-tx.ts` builds transactions using `Transaction` from the IOTA SDK.
+
+Important details:
+- Funding and repayment split payment coins from `tx.gas`.
+- The Clock object ID is hard-coded as `0x6`.
+
+## 6. Frontend Data Model and Persistence
+
+`src/lib/invoice-store.ts` defines `InvoiceRecord` used for both on-chain and local fallback.
 
 Persistence:
-- `localStorage` for records, hidden ids, lifecycle mode, and reset flags.
+- `localStorage` stores:
+  - invoice records
+  - hidden invoice IDs
+  - lifecycle mode selection
+  - "hide all pending" reset flags
 
-## 7. Network and package id config
+Merge behavior:
+- The UI merges on-chain data with local cache.
+- If the chain is behind (indexing lag), local terminal states are temporarily preferred until the chain catches up.
 
-`src/components/app-providers.tsx`:
-- supported networks: `devnet`, `testnet`, `mainnet`
-- package id from env:
+## 7. Network and Package ID Configuration
+
+`src/components/app-providers.tsx` uses `createNetworkConfig`:
+- Networks: `devnet`, `testnet`, `mainnet`
+- Package IDs from env:
   - `NEXT_PUBLIC_IOTA_PACKAGE_ID_DEVNET`
   - `NEXT_PUBLIC_IOTA_PACKAGE_ID_TESTNET`
   - `NEXT_PUBLIC_IOTA_PACKAGE_ID_MAINNET`
 
-If package id is missing:
-- no on-chain calls;
-- local demo fallback is used.
+If the package ID is missing for the selected network:
+- the UI shows a banner
+- actions fall back to local demo persistence
 
-## 8. On-chain fetch algorithm
+## 8. On-Chain Discovery Algorithm (No Indexer)
 
-Implemented in `src/lib/onchain-invoices.ts`:
-1. query tx blocks filtered by `MoveFunction`:
+`src/lib/onchain-invoices.ts`:
+1. Query tx blocks filtered by Move function:
    - `create_invoice`
    - `create_invoice_simulation`
-2. extract created `objectId` for `::invoice_vault::Invoice`
-3. call `multiGetObjects` on collected ids
-4. parse Move fields into `InvoiceRecord`
-5. keep only `Shared` owner objects
-6. sort by `dueDateEpochSec desc`
+2. Extract created object IDs of `::invoice_vault::Invoice`
+3. Read objects via `multiGetObjects(showContent, showOwner)`
+4. Keep only `Shared` owner invoices
+5. Parse Move fields into `InvoiceRecord`
+6. Sort by due date descending
 
-Known limitation:
-- not scalable long term (full historical scan).
+Limitation:
+- Full historical scan is not scalable long-term; a cursor-based indexer is a roadmap item.
 
-## 9. Chain/local merge behavior
-- UI merges `onchain + local cache`.
-- if local state is terminal but chain is not updated yet (indexing lag), local terminal state is temporarily preferred.
-- once chain reaches terminal state, chain data becomes the source of truth.
+## 9. Compliance / Eligibility
 
-## 10. Compliance and funding policy
-- on-chain: `set_compliance_lists` for per-invoice allow/deny rules.
-- frontend: wallet funding filter via env:
-  - `NEXT_PUBLIC_ALLOWLIST`
-  - `NEXT_PUBLIC_DENYLIST`
+Contract-level (optional):
+- `set_compliance_lists` stores allow/deny list per invoice (issuer-only, while OPEN).
 
-## 11. UX/system behavior
-- `SystemMenu`:
-  - copy package id;
-  - lifecycle mode switch;
-  - treasury balance;
-  - local data reset.
-- `AppShell`:
-  - missing package banner;
-  - wallet-network mismatch banner.
-- Marketplace:
-  - does not show closed states.
-- Portfolio:
-  - shows counterparty ratings from both buyer and seller perspectives.
+Frontend-level (implemented as a demo guard):
+- `NEXT_PUBLIC_ALLOWLIST` and `NEXT_PUBLIC_DENYLIST` can restrict which wallets can fund from the UI.
 
-## 12. Risks and technical debt
-- No dedicated indexer (full scan approach).
-- Uses JS `number` for nano amounts; migrate to `bigint` for high-volume safety.
-- No automated Move/frontend test suite in repository (frontend lint only).
-- Demo mode controls exist in both UI and on-chain flag; keep them aligned in future changes.
+## 10. Known Risks / Technical Debt
 
-## 13. Recommended evolution
-- incremental indexer job with persistent cursors.
-- dedicated object/event model for rating history.
-- risk analytics (default ratio, recovery ratio, weighted scoring).
-- test suite:
-  - Move unit/integration tests;
-  - frontend component/integration tests;
-  - demo-flow e2e smoke tests.
+- Uses JS `number` for nano amounts; migrating to `bigint` would be safer for large values.
+- No automated Move tests or e2e tests in this repo.
+- The discovery approach is indexer-less and can be slow as history grows.
+
+## 11. Roadmap-Aligned Next Steps
+
+- Incremental indexer with persistent cursors + analytics dashboard.
+- Smart contract audit + security hardening and monitoring.
+- Production overdue/servicing engine and legal wrappers.
+- KYB/KYC/AML and e-invoicing provenance integrations (SdI / Peppol / ViDA).

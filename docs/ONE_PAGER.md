@@ -1,79 +1,102 @@
 # InvoiceVault - One Pager
 
-## What It Is
-InvoiceVault is an IOTA-based invoice factoring MVP that turns invoice claims into on-chain assets and enables fast liquidity for SMEs.
+## Tagline
+
+Invoice-backed short-term credit on programmable rails.
+
+This is **not** classical factoring:
+- Repayment comes from the issuer at maturity (recourse).
+- The invoice is the auditable reference instrument, not the collection target.
+- The platform does not take balance-sheet risk in the MVP.
+
+## Why Now (Deck Summary)
+
+The pitch deck highlights three structural forces pushing receivables toward automation:
+1. Late payments persist, creating a structural SME liquidity gap.
+2. E-invoicing is being standardized at EU scale (ViDA; Italy SdI is already mature).
+3. Tokenization frameworks and rails are maturing (BIS/FSB style guidance and market readiness).
+
+Slides: `docs/InvoiceVault-slides.pdf`.
 
 ## Problem
-SMEs often wait 30-90 days to get paid, creating cash-flow stress.
-Traditional factoring is slow, opaque, and costly for small issuers.
+
+SMEs involuntarily finance their customers' working capital:
+- Late payments create cash trapped in receivables (DSO often ~55-65 days across the EU; higher in parts of Southern Europe).
+- SMEs have limited bargaining power: larger counterparties dictate payment terms.
+- Traditional factoring has onboarding friction, opacity, and manual underwriting that does not scale to small tickets.
 
 ## Solution
-InvoiceVault creates a simple on-chain flow:
-1. Seller creates invoice claim (PDF hash + metadata).
-2. Seller lists it at a discounted buy price.
-3. Buyer funds it.
-4. Seller repays at maturity.
 
-In demo mode, InvoiceVault also simulates credit risk with default and recovery.
+InvoiceVault turns invoice claims into **programmable on-chain credit instruments**:
+- Seller anchors the invoice PDF hash (SHA-256) on-chain.
+- Seller lists a claim at a discounted buy price.
+- Buyer funds at discount.
+- Seller repays at maturity (recourse).
 
-## Why It Matters
-- Faster liquidity cycle for issuers.
-- Transparent claim lifecycle and settlement.
-- Programmable risk behavior (default/recovery + rating history).
-- Strong demo-to-production path without rewriting core architecture.
+The on-chain lifecycle creates measurable, portable risk signals (DEFAULTED / RECOVERED tags + ratings), replacing PDF-based trust with an auditable state machine.
 
-## Product Snapshot
-- Frontend: Next.js app (`Create`, `Marketplace`, `Portfolio`).
-- Smart contract: Move module on IOTA.
-- Wallet integration: `@iota/dapp-kit`.
-- On-chain settlement in IOTA coin.
-- Platform fee: `0.75%` on funding.
-- Default recovery fee (demo mode): `8%` to buyer.
+## How It Works (4 Steps)
 
-## Lifecycle Modes
+1. Create claim (notarization): invoice hash + metadata on-chain.
+2. List: discount price, due date, and terms exposed in the marketplace.
+3. Fund: buyer funds at discount; platform fee is applied; status becomes FUNDED.
+4. Settle: issuer repays the holder; portfolio and rating update on-chain.
 
-### Normal mode
-`OPEN -> FUNDED -> REPAID`
-Alternative: `OPEN -> CANCELLED`
+## Value Proposition
 
-### Default Simulation mode (demo)
-`OPEN -> FUNDED -> DEFAULTED -> RECOVERED`
-Alternative: `OPEN -> CANCELLED`
+Sellers (SMEs):
+- Faster cash conversion cycle.
+- Predictable, transparent fees.
+- Repayment history becomes on-chain credit reputation.
+- Recourse model keeps the seller in control and does not disrupt the debtor relationship.
 
-Rules:
-- Due date auto-set to funding time +30s.
-- Buyer can mark default after due date.
-- Issuer can still repay after default (recovery).
-- Auto-rating `1/5` on default, then one buyer override allowed after recovery.
+Buyers (capital providers):
+- Yield via invoice discount (short duration).
+- Real-time portfolio visibility on-chain.
+- State-based risk signals, not opaque dashboards.
+- Diversifiable across issuers and tenors.
 
-## 3-Minute Live Demo Script
-1. Set `Mode: Demo` in System Options.
-2. Create invoice from PDF hash.
-3. List invoice with discount.
-4. Switch wallet and fund invoice.
-5. Wait ~30 seconds.
-6. Buyer marks `DEFAULTED`.
-7. Switch back to issuer and repay (`RECOVERED`).
-8. Buyer overrides rating and show default/recovered badge in portfolio history.
+Ecosystem:
+- Standardized receivables financing primitives.
+- Machine-readable compliance data as a future extension (MiCA-ready intent).
+- Integration path with EU e-invoicing rails (ViDA / SdI / Peppol).
+- Audit-ready infrastructure from day one.
 
-## What Judges Can Validate Immediately
-- Real wallet signatures.
-- Real transaction digests.
-- On-chain state transitions.
-- Economic logic (fees, repayment checks, self-funding block).
-- Risk signal continuity (`DEFAULTED/RECOVERED` tags + ratings).
+## What Is Already Proven (MVP)
 
-## Current Maturity
-- End-to-end MVP implemented and demo-ready.
-- On-chain package integrated in frontend.
-- Local fallback available for pitch resilience.
-- Ops workaround documented for stable Windows publish.
+End-to-end on-chain lifecycle on IOTA with:
+- Wallet signatures and real transaction digests.
+- Create -> list -> fund -> repay.
+- Fee logic and self-funding guard.
+- Demo-mode default / recovery simulation and rating continuity.
 
-## Near-Term Roadmap
-1. Add indexer job (incremental sync, no full historical scan).
-2. Expand risk analytics (default ratio, recovery performance, issuer scorecards).
-3. Add automated Move + frontend integration tests.
-4. Introduce production overdue/collections engine policies.
+## Business Model (Deck Summary)
 
-## Ask / Next Step
-Pilot with a small issuer-buyer cohort on devnet/testnet, then harden indexing, compliance, and analytics for production rollout.
+Primary: transaction-based take-rate on successful funding (implemented in contract at 0.75% of buy price).
+
+Expansion: analytics/scorecards, compliance orchestration, partner APIs, and servicing/collections (roadmap).
+
+## Go-To-Market (Deck Summary)
+
+- Now: MVP live end-to-end.
+- 3-6 months: Italy pilot cohort (issuer-buyer), KYB/KYC, provenance integrations.
+- 6-12 months: indexer + analytics dashboard, smart contract audit, overdue engine.
+- 12-18 months: EU scaling (MiCA/DLT Pilot compliance pathway, Spain/France expansion, Peppol/ViDA integration).
+
+Key KPIs:
+- time-to-fund
+- repayment performance
+- repeat usage rate
+- default-to-recovery ratio
+
+## Ask (Deck Summary)
+
+EUR 100k-200k to run a regulated pilot and harden the platform for EU scale:
+- Product/engineering (indexer, e-invoicing integrations, test automation)
+- Security/compliance (audit, KYB/KYC, legal structuring)
+- GTM/partnerships (pilot issuer/buyer acquisition, channels)
+- Operations (infrastructure hardening, monitoring, incident response)
+
+## Design Principle
+
+InvoiceVault tokens are the on-chain control plane for a claim lifecycle. Legal enforceability requires off-chain legal wrappers: the production roadmap hardens these rails without rebuilding the core primitives.
