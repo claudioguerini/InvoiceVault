@@ -42,6 +42,13 @@ type SortOption =
   | "due-desc"
   | "rating-desc";
 type MessageTone = "success" | "error" | "info";
+type AuditEntryType = "object" | "tx";
+type AuditEntryCandidate = readonly [
+  label: string,
+  value: string | null | undefined,
+  type: AuditEntryType,
+];
+type AuditEntry = readonly [label: string, value: string, type: AuditEntryType];
 
 const dueDateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -267,7 +274,7 @@ export default function MarketplacePage() {
     return `${value.slice(0, 8)}...${value.slice(-6)}`;
   }
 
-  function auditEntries(item: InvoiceRecord) {
+  function auditEntries(item: InvoiceRecord): AuditEntryCandidate[] {
     return [
       ["Notarization", item.notarizationId, "object"],
       ["Notarization Tx", item.notarizationDigest, "tx"],
@@ -279,6 +286,10 @@ export default function MarketplacePage() {
       ["Repay Tx", item.repayDigest, "tx"],
       ["Rate Tx", item.rateDigest, "tx"],
     ] as const;
+  }
+
+  function isAuditEntry(entry: AuditEntryCandidate): entry is AuditEntry {
+    return Boolean(entry[1]);
   }
 
   function showCardMessage(itemId: string, text: string, tone: MessageTone) {
@@ -587,7 +598,7 @@ export default function MarketplacePage() {
           const isListed = uiStatus === "LISTED";
           const ratingStats = sellerRatings.get(sellerRatingsKey(item.issuer));
           const isCurrentUserIssuer = sameIotaAddress(item.issuer, accountAddress);
-          const auditItems = auditEntries(item).filter(([, value]) => Boolean(value));
+          const auditItems = auditEntries(item).filter(isAuditEntry);
           const auditEntryCount = auditItems.length + (item.notarizationCreatedAtMs ? 1 : 0);
           const yieldPct = computeYieldPct(item.amountNanos, item.discountPriceNanos);
           const spreadNanos = item.discountPriceNanos

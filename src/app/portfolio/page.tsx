@@ -38,6 +38,13 @@ type RatingsModalState = {
   displayAddress: string;
   title: string;
 } | null;
+type AuditEntryType = "object" | "tx";
+type AuditEntryCandidate = readonly [
+  label: string,
+  value: string | null | undefined,
+  type: AuditEntryType,
+];
+type AuditEntry = readonly [label: string, value: string, type: AuditEntryType];
 
 const dueDateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -59,6 +66,10 @@ function shortenAddress(value: string) {
 
 function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function isAuditEntry(entry: AuditEntryCandidate): entry is AuditEntry {
+  return Boolean(entry[1]);
 }
 
 function getUiStatus(item: InvoiceRecord): "UNLISTED" | "LISTED" | InvoiceRecord["status"] {
@@ -414,7 +425,7 @@ export default function PortfolioPage() {
     }
   }
 
-  function auditEntries(item: InvoiceRecord) {
+  function auditEntries(item: InvoiceRecord): AuditEntryCandidate[] {
     return [
       ["Notarization", item.notarizationId, "object"],
       ["Notarization Tx", item.notarizationDigest, "tx"],
@@ -443,7 +454,7 @@ export default function PortfolioPage() {
     const counterparty = isIssuer ? item.holder : item.issuer;
     const legacy = Boolean(packageId) && Boolean(item.packageId) && item.packageId !== packageId;
     const counterpartyStats = counterparty ? sellerRatings.get(sellerRatingsKey(counterparty)) : null;
-    const auditItems = auditEntries(item).filter(([, value]) => Boolean(value));
+    const auditItems = auditEntries(item).filter(isAuditEntry);
     const auditEntryCount = auditItems.length + (item.notarizationCreatedAtMs ? 1 : 0);
     const ratingEligible =
       canRateInvoice(item) &&
