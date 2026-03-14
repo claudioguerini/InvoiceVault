@@ -18,6 +18,9 @@ import {
 } from "@/lib/app-session";
 import { normalizeIotaObjectIdValue } from "@/lib/iota-ids";
 
+const DEFAULT_PUBLIC_TESTNET_PACKAGE_ID =
+  "0xd6d7831e7c64f78b814a5098458497b430867034f0f89fa3c9a357408d55a91a";
+
 const { networkConfig, useNetworkVariable } = createNetworkConfig({
   devnet: {
     url: getFullnodeUrl("devnet"),
@@ -29,8 +32,11 @@ const { networkConfig, useNetworkVariable } = createNetworkConfig({
   testnet: {
     url: getFullnodeUrl("testnet"),
     variables: {
-      invoicePackageId: process.env.NEXT_PUBLIC_IOTA_PACKAGE_ID_TESTNET ?? "",
-      notarizationPackageId: process.env.NEXT_PUBLIC_IOTA_NOTARIZATION_PACKAGE_ID_TESTNET ?? "",
+      invoicePackageId:
+        process.env.NEXT_PUBLIC_IOTA_PACKAGE_ID_TESTNET ?? DEFAULT_PUBLIC_TESTNET_PACKAGE_ID,
+      notarizationPackageId:
+        process.env.NEXT_PUBLIC_IOTA_NOTARIZATION_PACKAGE_ID_TESTNET ??
+        DEFAULT_PUBLIC_TESTNET_PACKAGE_ID,
     },
   },
   mainnet: {

@@ -37,6 +37,8 @@ Prereqs:
 - Node.js 20+ and npm
 - IOTA wallet extension (for on-chain mode)
 
+The repo ships with a public testnet package fallback, so a fresh clone can open the on-chain demo flow on testnet even before you create `.env.local`.
+
 ```bash
 npm install
 npm run dev
@@ -79,6 +81,8 @@ NEXT_PUBLIC_DENYLIST=0x123...,0x456...
 ```
 
 `NEXT_PUBLIC_IOTA_PACKAGE_ID_*` is required for the invoice lifecycle. `NEXT_PUBLIC_IOTA_NOTARIZATION_PACKAGE_ID_*` is required for on-chain create because the contract now verifies the notarization object on-chain against the exact deployed notarization package used by the frontend.
+
+Out of the box, the app also ships with a public testnet fallback package pair baked into the frontend bootstrap. `.env.local` is only required if you want to override that deploy, switch networks, or point the UI to another package pair.
 
 If the invoice package ID for the selected network is missing, the UI falls back to **local demo persistence** so the flow still works for pitch/demo.
 
