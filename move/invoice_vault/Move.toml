@@ -1,0 +1,11 @@
+[package]
+name = "invoice_vault"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+IotaNotarization = { local = "../iota_notarization" }
+
+[addresses]
+invoice_vault = "0x0"
+iota_notarization = "0x0"

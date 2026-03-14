@@ -1,0 +1,35 @@
+{
+  "name": "tokenfactoriota",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "check": "npm run lint && npm run build",
+    "test": "vitest run",
+    "test:move": "iota move test --path move/invoice_vault"
+  },
+  "dependencies": {
+    "@iota/dapp-kit": "^0.9.0",
+    "@iota/iota-sdk": "^1.11.0",
+    "@iota/notarization": "^0.1.10",
+    "@tanstack/react-query": "^5.90.20",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "jsdom": "^28.1.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.0.18"
+  }
+}

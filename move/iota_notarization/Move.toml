@@ -1,0 +1,15 @@
+# Copyright (c) 2024 IOTA Stiftung
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "IotaNotarization"
+edition = "2024.beta"
+
+[dependencies]
+
+[addresses]
+iota_notarization = "0x0"
+
+[dev-dependencies]
+
+[dev-addresses]
