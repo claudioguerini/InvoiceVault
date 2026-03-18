@@ -208,19 +208,8 @@ Session reset semantics:
   - wallet disconnected
   - wallet connected but no positions on current network
 
-## 10. Recommended Live Demo (5-7 minutes)
-
-1. Switch to "Default Simulation" in Session Control.
-2. Create invoice from PDF hash and list it for funding (discounted buy price).
-3. Switch wallet and fund as buyer.
-4. Wait ~30 seconds.
-5. Buyer marks default.
-6. Switch back to issuer and repay (recovery).
-7. Buyer optionally overrides rating and shows DEFAULTED/RECOVERED continuity in seller history.
-
 ## 11. MVP Limitations
 
 - No dedicated indexer (full historical scan of create transactions).
 - No real e-invoicing provenance integrations in MVP (hash anchor only).
-- No production overdue engine (demo jumps directly to default).
 - No legal enforceability wrappers in code (roadmap requirement).
